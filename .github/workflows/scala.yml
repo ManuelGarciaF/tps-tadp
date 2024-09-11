@@ -1,0 +1,41 @@
+name: Continuous Integration for Scala
+on:
+  pull_request:
+    branches:
+      - main
+  release:
+    types:
+      - created
+jobs:
+  build:
+    name: Build and Test
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        scala: [2.13.10]
+        java: [17]
+
+    defaults:
+      run:
+        working-directory: scala
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java and Scala
+        uses: actions/setup-java@v3
+        with:
+          java-version: ${{ matrix.java }}
+          distribution: 'temurin'
+          cache: 'sbt'
+
+      - name: Cache scala dependencies
+        uses: coursier/cache-action@v6
+
+      - name: Run tests
+        run: sbt ++${{ matrix.scala }} test
