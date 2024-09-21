@@ -8,7 +8,7 @@ class Persona
   end
 
   def viejo?
-    @edad > 29
+    edad > 29
   end
 end
 
@@ -99,6 +99,24 @@ end
 class OtraSuite
   def testear_que_corren_multiples_suites
     42.deberia ser uno_de_estos [42]
+  end
+end
+
+class PersonaTest
+  def testear_que_se_use_la_edad
+    Persona.new(22)
+    pato = Persona.new(23)
+    pato = espiar(pato)
+    pato.viejo?
+    pato.deberia haber_recibido(:edad)
+    pato.deberia haber_recibido(:edad).veces(1) # pasa: edad se recibió exactamente 1 vez.
+    pato.deberia haber_recibido(:edad).veces(5) # falla: edad sólo se recibió una vez.
+    pato.deberia haber_recibido(:viejo?).con_argumentos(19, 'hola') # falla, recibió el mensaje, pero sin esos argumentos.
+    pato.deberia haber_recibido(:viejo?).con_argumentos # pasa, recibió el mensaje sin argumentos.
+
+    lean = Persona.new(6666)
+    lean.viejo?
+    lean.deberia haber_recibido(:edad) # falla: lean no fue espiado!
   end
 end
 

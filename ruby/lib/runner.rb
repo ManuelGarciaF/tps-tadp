@@ -1,7 +1,7 @@
 require 'rainbow/refinement'
 using Rainbow
 
-require_relative 'assertions'
+require_relative 'testsuite'
 require_relative 'mocks'
 
 module TADsPec
