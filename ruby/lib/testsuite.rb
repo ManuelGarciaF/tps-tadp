@@ -1,4 +1,4 @@
-require_relative "assertions"
+require_relative 'assertions'
 
 # Se incluye en la clase que ejecute los tests
 module TestSuite

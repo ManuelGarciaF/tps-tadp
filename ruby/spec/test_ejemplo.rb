@@ -12,7 +12,7 @@ class Persona
   end
 end
 
-class TestearAssertions
+class AssertionsTest
   def testear_que_puedo_checkear_igualdad
     7.deberia ser 7
     true.deberia ser false
@@ -78,7 +78,7 @@ class PersonaHome
   end
 end
 
-class PersonaHomeTests
+class MockTests
   def testear_que_personas_viejas_trae_solo_a_los_viejos
     nico = Persona.new(30)
     axel = Persona.new(30)
@@ -102,7 +102,7 @@ class OtraSuite
   end
 end
 
-class PersonaTest
+class EspiaTests
   def testear_que_se_use_la_edad
     Persona.new(22)
     pato = Persona.new(23)
