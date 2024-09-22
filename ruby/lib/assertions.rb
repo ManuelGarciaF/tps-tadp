@@ -29,7 +29,7 @@ class EspiaAssertion < Assertion
     self
   end
 
-  def con_argumentos *args
+  def con_argumentos(*args)
     @args = args
     self
   end
@@ -44,11 +44,10 @@ class EspiaAssertion < Assertion
       llamado.msg == @msg and (@args == :any or llamado.args == @args)
     end
 
-    msg_str = @args == :any ? @msg : "#{@msg}(#{@args.join(', ')})"
+    msg_str = @args == :any ? @msg.to_s : "#{@msg}(#{@args.join(', ')})"
     @resultado = Resultado.from_bool(
       llamados.size >= @veces,
       "Se esperaban #{@veces} llamados a #{msg_str}, pero se encontraron #{llamados.size}"
     )
   end
 end
-

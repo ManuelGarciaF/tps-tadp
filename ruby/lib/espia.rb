@@ -16,10 +16,6 @@ module Espia
       end
     end
   end
-
-  def fue_llamado_msg? msg
-    llamados.any? { |llamado| llamado.msg == msg }
-  end
 end
 
 class Llamado
