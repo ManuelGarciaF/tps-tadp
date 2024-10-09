@@ -71,6 +71,7 @@ end
 class PersonaHome
   def todas_las_personas
     # Este método consume un servicio web que consulta una base de datos
+    :valor_original
   end
 
   def personas_viejas
@@ -92,7 +93,7 @@ class MockTests
   end
 
   def testear_que_se_remueve_el_mock
-    PersonaHome.new.todas_las_personas.deberia ser nil
+    PersonaHome.new.todas_las_personas.deberia ser :valor_original
   end
 end
 

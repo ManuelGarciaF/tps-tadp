@@ -38,7 +38,8 @@ module TADsPec
       # Ejecutar el test
       instancia.send nombre_test
 
-      clase_suite.desmockear
+      # Devolver todos los metodos originales que fueron mockeados
+      Mockeable.desmockear
 
       # Cada test se ejecuta en una instancia nueva, la guardamos para acceder
       # a los resultados luego
