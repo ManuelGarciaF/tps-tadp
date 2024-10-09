@@ -104,7 +104,6 @@ end
 
 class EspiaTests
   def testear_que_se_use_la_edad
-    Persona.new(22)
     pato = Persona.new(23)
     pato = espiar(pato)
     pato.viejo?

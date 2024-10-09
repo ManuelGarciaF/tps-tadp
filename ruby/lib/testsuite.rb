@@ -111,9 +111,10 @@ module TestSuite
     end
   end
 
-  def respond_to_missing?(nombre_msg)
+  def respond_to_missing?(nombre_msg, include_private = false)
     nombre_msg.to_s.start_with? 'ser_' or
-      nombre_msg.to_s.start_with? 'tener_'
+      nombre_msg.to_s.start_with? 'tener_' or
+      super
   end
 
   def ser_abreviado(nombre_msg)

@@ -44,7 +44,6 @@ module TADsPec
       # a los resultados luego
       [nombre_test, instancia]
     end
-
   end
 
   def self.imprimir_resultados(clase_suite, resultados)
