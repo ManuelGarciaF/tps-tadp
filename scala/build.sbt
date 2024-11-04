@@ -1,12 +1,15 @@
-name := "scala"
 
-version := "1"
+ThisBuild / organization := "ar.edu.utn.frba.tadp"
 
-organization := "edu.ar.utn.tadp"
+ThisBuild / scalaVersion := "3.3.1"
 
-scalaVersion := "2.13.10"
+ThisBuild / version := "1.0"
 
-libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "3.2.15" % "test",
-  "org.scalactic" %% "scalactic" % "3.2.15"
-)
+name := "tp-hibrido-objetos-funcional"
+
+resolvers += "jitpack" at "https://jitpack.io" // Add JitPack repository, to download dependency from github
+
+libraryDependencies += "com.github.tadp-utn-frba" % "tp-dibujador-poc" % "-bcc98c0d23-1"
+
+libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.19"
+libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % "test"
