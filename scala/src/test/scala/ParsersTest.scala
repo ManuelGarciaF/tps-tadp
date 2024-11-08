@@ -105,11 +105,11 @@ class ParsersTest extends AnyFreeSpec {
 
   "or (<|>)" - {
     "deberia devolver el primer parser si tiene exito" in {
-      assert((char('a') <|> integer).parse("abc").get == (Left('a'), "bc"))
+      assert((char('a') <|> integer).parse("abc").get == ('a', "bc"))
     }
 
     "deberia devolver el segundo parser si tiene exito" in {
-      assert((char('a') <|> integer).parse("123abc").get == (Right(123), "abc"))
+      assert((char('a') <|> integer).parse("123abc").get == (123, "abc"))
     }
 
     "deberia fallar si ambos parsers fallan" in {
@@ -117,7 +117,7 @@ class ParsersTest extends AnyFreeSpec {
     }
 
     "deberia darle prioridad al primer parser" in {
-      assert((integer <|> char('1')).parse("1bc").get == (Left(1), "bc"))
+      assert((integer <|> char('1')).parse("1bc").get == (1, "bc"))
     }
   }
 
@@ -132,6 +132,52 @@ class ParsersTest extends AnyFreeSpec {
 
     "deberia fallar si el segundo parser falla" in {
       assert((char('a') <> char('b')).parse("ac").isFailure)
+    }
+  }
+
+  "rightmost (~>)" - {
+    "deberia devolver el resultado del segundo" in {
+      assert((char('a') ~> char('b')).parse("abc").get == ('b', "c"))
+    }
+
+    "deberia fallar si el primer parser falla" in {
+      assert((char('a') ~> char('b')).parse("bc").isFailure)
+    }
+
+    "deberia fallar si el segundo parser falla" in {
+      assert((char('a') ~> char('b')).parse("ac").isFailure)
+    }
+  }
+
+  "leftmost (<~)" - {
+    "deberia devolver el resultado del segundo" in {
+      assert((char('a') <~ char('b')).parse("abc").get == ('a', "c"))
+    }
+
+    "deberia fallar si el primer parser falla" in {
+      assert((char('a') <~ char('b')).parse("bc").isFailure)
+    }
+
+    "deberia fallar si el segundo parser falla" in {
+      assert((char('a') <~ char('b')).parse("ac").isFailure)
+    }
+  }
+
+  "sepBy" - {
+    "deberia devolver una lista de elementos" in {
+      assert((char('a') sepBy char(',')).parse("a,a,a").get == (List('a', 'a', 'a'), ""))
+    }
+
+    "deberia fallar si el primer parser falla" in {
+      assert((char('a') sepBy char(',')).parse("b,a,a").isFailure)
+    }
+
+    "deberia dar el primer valor si el segundo parser falla" in {
+      assert((char('a') sepBy char(',')).parse("a.a,b").get == (List('a'), ".a,b"))
+    }
+    
+    "deberia devolver una lista vacia si no hay elementos" in {
+      assert((char('a') sepBy char(',')).parse("").get == (List(), ""))
     }
   }
 }

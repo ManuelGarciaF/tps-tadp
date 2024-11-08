@@ -1,5 +1,6 @@
 package domain
 
+import scala.annotation.targetName
 import scala.util.{Failure, Success, Try}
 
 class ParserError(message: String) extends Exception(message)
@@ -7,32 +8,72 @@ class ParserError(message: String) extends Exception(message)
 sealed trait Parser[T] {
   def parse(s: String): Try[(T, String)]
 
-  def <|>[U](right: Parser[U]): Parser[Either[T, U]] = {
+  @targetName("or")
+  def <|>[U](right: Parser[U]): Parser[T | U] = {
     val left = this
-    new Parser[Either[T, U]] {
-      def parse(s: String): Try[(Either[T, U], String)] = {
-        left.parse(s) match {
-          case Success((value, rest)) => Success((Left(value), rest))
-          case Failure(_) => right.parse(s) match {
-            case Success((value, rest)) => Success((Right(value), rest))
-            case Failure(e) => Failure(e)
-          }
-        }
+    new Parser[T | U] {
+      def parse(s: String): Try[(T | U, String)] = {
+        left.parse(s).recoverWith(_ => right.parse(s))
       }
     }
   }
 
+  @targetName("concat")
   def <>[U](right: Parser[U]): Parser[(T, U)] = {
     val left = this
     new Parser[(T, U)] {
       def parse(s: String): Try[((T, U), String)] = {
-        left.parse(s).flatMap(t => right.parse(t._2) match {
-          case Success((u, rest)) => Success(((t._1, u), rest))
-          case Failure(e) => Failure(e)
-        })
+        for {
+          (v1, r1) <- left.parse(s)
+          (v2, r2) <- right.parse(r1)
+        } yield ((v1, v2), r2)
       }
     }
   }
+
+  @targetName("rightmost")
+  def ~>[U](right: Parser[U]): Parser[U] = {
+    val left = this
+    new Parser[U] {
+      def parse(s: String): Try[(U, String)] = {
+        for {
+          (_, r1) <- left.parse(s)
+          (v2, r2) <- right.parse(r1)
+        } yield (v2, r2)
+      }
+    }
+  }
+
+  @targetName("leftmost")
+  def <~[U](right: Parser[U]): Parser[T] = {
+    val left = this
+    new Parser[T] {
+      def parse(s: String): Try[(T, String)] = {
+        for {
+          (v1, r1) <- left.parse(s)
+          (v2, r2) <- right.parse(r1)
+        } yield (v1, r2)
+      }
+    }
+  }
+
+  def sepBy(sep: Parser[_]): Parser[List[T]] = {
+    val contenido = this
+    new Parser[List[T]] {
+      def parse(s: String): Try[(List[T], String)] = {
+        contenido.parse(s).flatMap((v1, r1) =>
+          sep.parse(r1)
+            .map(_._2)
+            .flatMap(this.parse) // Llamada recursiva
+            .fold(
+              _ => Success(List(v1), r1), // Si es un fallo
+              { case (vs, r2) => Success(v1 :: vs, r2) }
+            )
+        )
+      }
+    }
+  }
+
 }
 
 case object anyChar extends Parser[Char] {
