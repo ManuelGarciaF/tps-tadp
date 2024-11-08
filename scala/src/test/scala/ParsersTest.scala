@@ -1,4 +1,4 @@
-import domain.{anyChar, char, digit, double, integer, string}
+import domain.*
 import org.scalatest.freespec.AnyFreeSpec
 
 class ParsersTest extends AnyFreeSpec {
@@ -165,7 +165,7 @@ class ParsersTest extends AnyFreeSpec {
 
   "sepBy" - {
     "deberia devolver una lista de elementos" in {
-      assert((char('a') sepBy char(',')).parse("a,a,a").get == (List('a', 'a', 'a'), ""))
+      assert((integer sepBy char(',')).parse("123,456,789").get == (List(123, 456, 789), ""))
     }
 
     "deberia fallar si el primer parser falla" in {
@@ -175,7 +175,7 @@ class ParsersTest extends AnyFreeSpec {
     "deberia dar el primer valor si el segundo parser falla" in {
       assert((char('a') sepBy char(',')).parse("a.a,b").get == (List('a'), ".a,b"))
     }
-    
+
     "deberia devolver una lista vacia si no hay elementos" in {
       assert((char('a') sepBy char(',')).parse("").get == (List(), ""))
     }

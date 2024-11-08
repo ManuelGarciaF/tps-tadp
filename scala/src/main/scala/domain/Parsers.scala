@@ -61,19 +61,18 @@ sealed trait Parser[T] {
     val contenido = this
     new Parser[List[T]] {
       def parse(s: String): Try[(List[T], String)] = {
-        contenido.parse(s).flatMap((v1, r1) =>
-          sep.parse(r1)
-            .map(_._2)
-            .flatMap(this.parse) // Llamada recursiva
-            .fold(
-              _ => Success(List(v1), r1), // Si es un fallo
-              { case (vs, r2) => Success(v1 :: vs, r2) }
-            )
-        )
+        contenido.parse(s) // Llamada inicial
+          .flatMap((v1, r1) =>
+            sep.parse(r1).map(_._2) // Intentar parsear el separador y ignorar el resultado
+              .flatMap(this.parse) // Llamada recursiva, solo si el separador es exitoso
+              .fold(
+                _ => Success(List(v1), r1), // Si es un fallo, solo devolver el valor parseado
+                (vs, r2) => Success(v1 :: vs, r2) // Si no es un fallo concatenar los resultados
+              )
+          )
       }
     }
   }
-
 }
 
 case object anyChar extends Parser[Char] {
