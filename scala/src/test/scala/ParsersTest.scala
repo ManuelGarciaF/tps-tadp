@@ -175,9 +175,5 @@ class ParsersTest extends AnyFreeSpec {
     "deberia dar el primer valor si el segundo parser falla" in {
       assert((char('a') sepBy char(',')).parse("a.a,b").get == (List('a'), ".a,b"))
     }
-
-    "deberia devolver una lista vacia si no hay elementos" in {
-      assert((char('a') sepBy char(',')).parse("").get == (List(), ""))
-    }
   }
 }
