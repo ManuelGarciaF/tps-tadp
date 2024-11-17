@@ -3,7 +3,9 @@ package domain
 import scala.annotation.targetName
 import scala.util.{Failure, Success, Try}
 
-class ParserError(message: String) extends Exception(message)
+class NoMoreCharactersError extends Exception("No hay más caracteres")
+
+class UnexpectedCharacterError extends Exception("Caracter inesperado")
 
 sealed trait Parser[T] {
   def apply(s: String): Try[(T, String)]
@@ -57,86 +59,112 @@ sealed trait Parser[T] {
     }
   }
 
-  def sepBy(sep: Parser[_]): Parser[List[T]] = {
-    val contenido = this
-    new Parser[List[T]] {
-      def apply(s: String): Try[(List[T], String)] = {
-        contenido(s) // Llamada inicial
-          .flatMap((v1, r1) =>
-            sep(r1).map(_._2) // Intentar parsear el separador y ignorar el resultado
-              .flatMap(this.apply) // Llamada recursiva, solo si el separador es exitoso
-              .fold(
-                _ => Success(List(v1), r1), // Si es un fallo, solo devolver el valor parseado
-                (vs, r2) => Success(v1 :: vs, r2) // Si no es un fallo concatenar los resultados
-              )
-          )
-      }
+  def sepBy(sep: Parser[_]): Parser[List[T]] = (this <> (sep ~> this).*).map((v, vs) => v :: vs)
+
+  def satisfies(f: T => Boolean): Parser[T] = {
+    val orig = this
+    new Parser[T] {
+      def apply(s: String): Try[(T, String)] = orig(s).filter((v, _) => f(v))
     }
   }
+
+  def opt: Parser[Option[T]] = {
+    val orig = this
+    new Parser[Option[T]] {
+      def apply(s: String): Try[(Option[T], String)] = orig(s)
+        .map((v, r) => (Some(v), r))
+        .recover(_ => (None, s))
+    }
+  }
+
+  @targetName("kleene")
+  def * : Parser[List[T]] = {
+    val orig = this
+    new Parser[List[T]] {
+      def apply(s: String): Try[(List[T], String)] = Try(applyTail(List(), s)) // La clausura de kleene nunca falla
+
+      // Tail recursive
+      def applyTail(vals: List[T], rest: String): (List[T], String) = orig(rest)
+        .map((v, r) => applyTail(v :: vals, r))
+        .recover(_ => (vals.reverse, rest)) // Hay que invertirla ya que se agrega al principio
+        .get
+    }
+  }
+
+  def map[U](f: T => U): Parser[U] = {
+    val orig = this
+    new Parser[U] {
+      def apply(s: String): Try[(U, String)] = orig(s).map((v, r) => (f(v), r))
+    }
+  }
+
+  @targetName("positiveClause") // Se lo puede definir en funcion de la clausura de kleene
+  def + : Parser[List[T]] = (this <> this.*).map((v, vs) => v :: vs)
 }
 
 case object anyChar extends Parser[Char] {
   def apply(s: String): Try[(Char, String)] = s.headOption.fold
-    (Failure(new ParserError("No hay más caracteres")))
+    (Failure(new NoMoreCharactersError))
     (h => Success((h, s.tail)))
-}
-
-case class char(c: Char) extends Parser[Char] {
-  def apply(s: String): Try[(Char, String)] = s match {
-    case "" => Failure(new ParserError("No hay más caracteres"))
-    case s if s.head == c => Success((c, s.tail))
-    case other => Failure(new ParserError(s"Se esperaba el caracter $c pero se encontró ${other.head}"))
-  }
-}
-
-case object digit extends Parser[Char] {
-  def apply(s: String): Try[(Char, String)] = s match {
-    case "" => Failure(new ParserError("No hay más caracteres"))
-    case s if s.head.isDigit => Success((s.head, s.tail))
-    case other => Failure(new ParserError(s"Se esperaba un dígito pero se encontró ${other.head}"))
-  }
 }
 
 case class string(expected: String) extends Parser[String] {
   def apply(s: String): Try[(String, String)] = s match {
     case s if s.startsWith(expected) => Success((expected, s.drop(expected.length)))
-    case other => Failure(new ParserError(s"Se esperaba la cadena $expected pero se encontró $other"))
+    case _ => Failure(new UnexpectedCharacterError)
   }
 }
 
-case object number extends Parser[Int] {
-  def apply(s: String): Try[(Int, String)] = s match {
-    case "" => Failure(new ParserError("No hay más caracteres"))
-    case s if s.head.isDigit => Success((s.takeWhile(_.isDigit).toInt, s.dropWhile(_.isDigit)))
-    case other => Failure(new ParserError(s"Se esperaba un dígito pero se encontró ${other.head}"))
-  }
+// Se pueden reimplementar casi todos los parsers a base de anychar, filter y map
+val char: Char => Parser[Char] = c => anyChar.satisfies(_ == c)
+
+val digit: Parser[Char] = anyChar.satisfies(_.isDigit)
+
+val number: Parser[Int] = digit.*.map(_.mkString.toInt)
+
+val integer = (char('-').opt <> number).map {
+  case (None, n) => n
+  case (Some(_), n) => -n
 }
 
-case object integer extends Parser[Int] {
-  def apply(s: String): Try[(Int, String)] = s match {
-    case "" => Failure(new ParserError("No hay más caracteres"))
-    case s if s.head.isDigit => number(s)
-    case s if s.head == '-' => number(s.tail) match {
-      case Success((n, rest)) => Success((-n, rest))
-      case Failure(e) => Failure(e)
-    }
-    case other => Failure(new ParserError(s"Se esperaba un dígito pero se encontró ${other.head}"))
-  }
+val double = (integer <> (char('.') <> number).opt).map {
+  case (i, None) => i.toDouble
+  case (i, Some((_, d))) => s"$i.$d".toDouble
 }
 
-case object double extends Parser[Double] {
-  def apply(s: String): Try[(Double, String)] = s match {
-    case "" => Failure(new ParserError("No hay más caracteres"))
-    case s => integer(s) match {
-      case Success((start, rest)) => if (rest.headOption.contains('.')) {
-        number(rest.tail) match {
-          case Success((end, rest2)) => Success((s"$start.$end".toDouble, rest2))
-          case Failure(_) => Failure(new ParserError(s"Se esperaba un número entero pero se encontró ${rest.head}"))
-        }
-      } else {
-        Success((start, rest))
-      }
-      case Failure(_) => Failure(new ParserError(s"Se esperaba un número entero pero se encontró ${s.head}"))
-    }
-  }
-}
+//case class char(c: Char) extends Parser[Char] {
+//  def apply(s: String): Try[(Char, String)] = s.headOption.fold
+//    (Failure(new NoMoreCharactersError))
+//    (h => if (h == c) Success((h, s.tail)) else Failure(new UnexpectedCharacterError))
+//}
+//
+//case object digit extends Parser[Char] {
+//  def apply(s: String): Try[(Char, String)] = s.headOption.fold
+//    (Failure(new NoMoreCharactersError))
+//    (h => if (h.isDigit) Success((s.head, s.tail)) else Failure(new UnexpectedCharacterError))
+//}
+//
+//
+//case object number extends Parser[Int] {
+//  def apply(s: String): Try[(Int, String)] = s.headOption.fold
+//    (Failure(new NoMoreCharactersError))
+//    (h => if (h.isDigit) Success((s.takeWhile(_.isDigit).toInt, s.dropWhile(_.isDigit)))
+//    else Failure(new UnexpectedCharacterError))
+//}
+
+//case object integer extends Parser[Int] {
+//  def apply(s: String): Try[(Int, String)] = s.headOption.map {
+//    case '-' => number(s.tail).map((n, rest) => (-n, rest))
+//    case _ => number(s)
+//  }.getOrElse(Failure(new NoMoreCharactersError))
+//}
+
+//case object double extends Parser[Double] {
+//  def apply(s: String): Try[(Double, String)] = integer(s).flatMap((start, rest) =>
+//    if (rest.headOption.contains('.')) {
+//      number(rest.tail).map((end, rest2) => (s"$start.$end".toDouble, rest2))
+//    } else {
+//      Success((start.toDouble, rest))
+//    }
+//  )
+//}
