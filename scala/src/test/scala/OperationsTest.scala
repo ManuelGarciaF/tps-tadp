@@ -33,7 +33,7 @@ class OperationsTest extends AnyFreeSpec {
     }
   }
 
-  "kleene" - {
+  "kleene (*)" - {
     "Deberia devolver una lista vacia si el parser falla" in {
       assert(char('a').*.apply("bc").get == (List(), "bc"))
     }
@@ -47,7 +47,7 @@ class OperationsTest extends AnyFreeSpec {
     }
   }
 
-  "positiveClause" - {
+  "positiveClause (+)" - {
     "Deberia devolver una lista con los valores parseados" in {
       assert(char('a').+.apply("aaabc").get == (List('a', 'a', 'a'), "bc"))
     }
