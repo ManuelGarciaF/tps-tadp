@@ -74,5 +74,9 @@ class CombinatorsTest extends AnyFreeSpec {
     "deberia dar el primer valor si el segundo parser falla" in {
       assert((char('a') sepBy char(','))("a.a,b").get == (List('a'), ".a,b"))
     }
+
+    "deberia ignorar el ultimo separador si sobra" in {
+      assert((integer sepBy char(','))("123,456,789,").get == (List(123, 456, 789), ","))
+    }
   }
 }

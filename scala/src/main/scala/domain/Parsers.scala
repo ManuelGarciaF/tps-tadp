@@ -7,11 +7,11 @@ class NoMoreCharactersError extends Exception("No hay más caracteres")
 
 class UnexpectedCharacterError extends Exception("Caracter inesperado")
 
-sealed trait Parser[T] {
+sealed trait Parser[+T] {
   def apply(s: String): Try[(T, String)]
 
   @targetName("or")
-  def <|>[U](right: Parser[U]): Parser[T | U] = {
+  def <|>[U](right: => Parser[U]): Parser[T | U] = {
     val left = this
     new Parser[T | U] {
       def apply(s: String): Try[(T | U, String)] = {
@@ -21,7 +21,7 @@ sealed trait Parser[T] {
   }
 
   @targetName("concat")
-  def <>[U](right: Parser[U]): Parser[(T, U)] = {
+  def <>[U](right: => Parser[U]): Parser[(T, U)] = {
     val left = this
     new Parser[(T, U)] {
       def apply(s: String): Try[((T, U), String)] = {
@@ -34,7 +34,7 @@ sealed trait Parser[T] {
   }
 
   @targetName("rightmost")
-  def ~>[U](right: Parser[U]): Parser[U] = {
+  def ~>[U](right: => Parser[U]): Parser[U] = {
     val left = this
     new Parser[U] {
       def apply(s: String): Try[(U, String)] = {
@@ -47,7 +47,7 @@ sealed trait Parser[T] {
   }
 
   @targetName("leftmost")
-  def <~[U](right: Parser[U]): Parser[T] = {
+  def <~[U](right: => Parser[U]): Parser[T] = {
     val left = this
     new Parser[T] {
       def apply(s: String): Try[(T, String)] = {
