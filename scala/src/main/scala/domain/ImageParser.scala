@@ -14,27 +14,23 @@ case class Circle(center: Point, radius: Int) extends Figure {
 
 case class Group(figures: List[Figure]) extends Figure
 
-sealed trait Transformation extends Figure {
-  val figure: Figure
-}
-
 // Transformaciones
-case class Color(figure: Figure, color: (Int, Int, Int)) extends Transformation {
+case class Color(figure: Figure, color: (Int, Int, Int)) extends Figure {
   require(color._1 >= 0 && color._1 <= 255)
   require(color._2 >= 0 && color._2 <= 255)
   require(color._3 >= 0 && color._3 <= 255)
 }
 
-case class Scale(figure: Figure, factor: (Double, Double)) extends Transformation {
+case class Scale(figure: Figure, factor: (Double, Double)) extends Figure {
   require(factor._1 > 0)
   require(factor._2 > 0)
 }
 
-case class Rotation(figure: Figure, angle: Int) extends Transformation {
+case class Rotation(figure: Figure, angle: Int) extends Figure {
   require(angle >= 0 && angle < 360)
 }
 
-case class Traslation(figure: Figure, displacement: (Int, Int)) extends Transformation
+case class Traslation(figure: Figure, displacement: (Int, Int)) extends Figure
 
 // Utilidades
 def surroundedBy[T](start: String, end: String, p: Parser[T]): Parser[T] = string(start) ~> p <~ string(end)
@@ -98,20 +94,53 @@ lazy val figure: Parser[Figure] = triangle
 val imageParser: Parser[Figure] = figure
 
 // Simplificar el AST creado por el parser, recorriendo el arbol recursivamente.
-def simplify(f: Figure): Figure = f match {
-  case Color(Color(figure, color), _) => simplify(Color(figure, color))
-  case Rotation(Rotation(figure, a1), a2) => simplify(Rotation(figure, (a1 + a2) % 360))
-  case Scale(Scale(figure, f1), f2) => simplify(Scale(figure, (f1._1 * f2._1, f1._2 * f2._2)))
-  case Traslation(Traslation(figure, d1), d2) => simplify(Traslation(figure, (d1._1 + d2._1, d1._2 + d2._2)))
+def simplify(root: Figure): Figure = root match {
+  // Transformaciones anidadas
+  case Color(Color(f, color), _) => simplify(Color(f, color))
+  case Rotation(Rotation(f, a1), a2) => simplify(Rotation(f, (a1 + a2) % 360))
+  case Scale(Scale(f, f1), f2) => simplify(Scale(f, (f1._1 * f2._1, f1._2 * f2._2)))
+  case Traslation(Traslation(f, d1), d2) => simplify(Traslation(f, (d1._1 + d2._1, d1._2 + d2._2)))
 
-  case Rotation(figure, 0) => simplify(figure)
-  case Scale(figure, (1, 1)) => simplify(figure)
-  case Traslation(figure, (0, 0)) => simplify(figure)
+  // Transformaciones redundantes
+  case Rotation(f, 0) => simplify(f)
+  case Scale(f, (1, 1)) => simplify(f)
+  case Traslation(f, (0, 0)) => simplify(f)
 
-  // TODO: regla de simplificación para grupos
+  // Simplificar grupos, extrayendo las transformaciones repetidas
+  case Group(f :: fs) =>
+    val fSimpl = simplify(f) // Hay que simplificar antes de rearmar el grupo
+    val fsSimpl = fs.map(simplify)
 
-  case Group(figures) => Group(figures.map(simplify))
+    fSimpl match { // Si la primera figura es una transformación, intentar agruparla con las demás
+      case Color(f1, c) if fsSimpl.forall { case Color(_, `c`) => true; case _ => false } =>
+        Color(Group(
+          f1 :: fsSimpl.collect { case Color(f, _) => f }
+        ), c)
+
+      case Scale(f1, s) if fsSimpl.forall { case Scale(_, `s`) => true; case _ => false } =>
+        Scale(Group(
+          f1 :: fsSimpl.collect { case Scale(f, _) => f }
+        ), s)
+
+      case Rotation(f1, a) if fsSimpl.forall { case Rotation(_, `a`) => true; case _ => false } =>
+        Rotation(Group(
+          f1 :: fsSimpl.collect { case Rotation(f, _) => f }
+        ), a)
+
+      case Traslation(f1, d) if fsSimpl.forall { case Traslation(_, `d`) => true; case _ => false } =>
+        Traslation(Group(
+          f1 :: fsSimpl.collect { case Traslation(f, _) => f }
+        ), d)
+
+      case _ => Group(fSimpl :: fsSimpl)
+    }
+
+  // Simplificar figuras anidadas
+  case Color(f, c) => Color(simplify(f), c)
+  case Scale(f, s) => Scale(simplify(f), s)
+  case Rotation(f, a) => Rotation(simplify(f), a)
+  case Traslation(f, d) => Traslation(simplify(f), d)
 
   // Si no se cumple ninguna regla, devolver la figura sin modificar
-  case _ => f
+  case _ => root
 }

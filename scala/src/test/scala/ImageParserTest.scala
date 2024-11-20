@@ -416,21 +416,74 @@ class ImageParserTest extends AnyFreeSpec {
       assert(simplify(figure) == Color(Rectangle((100, 100), (200, 200)), (200, 200, 200)))
     }
 
-    "Deberia simplificar transformaciones aplicadas a todos los hijos de un grupo" in {
-      val str = noWhitespace(
-        """grupo(
-          |  color[200, 200, 200](
-          |    rectangulo[100 @ 100, 200 @ 200]
-          |  ),
-          |  color[200, 200, 200](
-          |    circulo[100 @ 300, 150]
-          |  )
-          |)""".stripMargin)
-      val figure = imageParser(str).get._1
-      assert(simplify(figure) == Color(Group(List(
-        Rectangle((100, 100), (200, 200)),
-        Circle((100, 300), 150)
-      )), (200, 200, 200)))
+    "Deberia simplificar transformaciones aplicadas a todos los hijos de un grupo" - {
+      "Deberia funcionar con colores" - {
+        val str = noWhitespace(
+          """grupo(
+            |  color[200, 200, 200](
+            |    rectangulo[100 @ 100, 200 @ 200]
+            |  ),
+            |  color[200, 200, 200](
+            |    circulo[100 @ 300, 150]
+            |  )
+            |)""".stripMargin)
+        val figure = imageParser(str).get._1
+        assert(simplify(figure) == Color(Group(List(
+          Rectangle((100, 100), (200, 200)),
+          Circle((100, 300), 150)
+        )), (200, 200, 200)))
+      }
+
+      "Deberia funcionar con escalas" - {
+        val str = noWhitespace(
+          """grupo(
+            |  escala[2, 2](
+            |    rectangulo[100 @ 100, 200 @ 200]
+            |  ),
+            |  escala[2, 2](
+            |    circulo[100 @ 300, 150]
+            |  )
+            |)""".stripMargin)
+        val figure = imageParser(str).get._1
+        assert(simplify(figure) == Scale(Group(List(
+          Rectangle((100, 100), (200, 200)),
+          Circle((100, 300), 150)
+        )), (2, 2)))
+      }
+
+      "Deberia funcionar con rotaciones" - {
+        val str = noWhitespace(
+          """grupo(
+            |  rotacion[45](
+            |    rectangulo[100 @ 100, 200 @ 200]
+            |  ),
+            |  rotacion[45](
+            |    circulo[100 @ 300, 150]
+            |  )
+            |)""".stripMargin)
+        val figure = imageParser(str).get._1
+        assert(simplify(figure) == Rotation(Group(List(
+          Rectangle((100, 100), (200, 200)),
+          Circle((100, 300), 150)
+        )), 45))
+      }
+
+      "Deberia funcionar con traslaciones" - {
+        val str = noWhitespace(
+          """grupo(
+            |  traslacion[100, 100](
+            |    rectangulo[100 @ 100, 200 @ 200]
+            |  ),
+            |  traslacion[100, 100](
+            |    circulo[100 @ 300, 150]
+            |  )
+            |)""".stripMargin)
+        val figure = imageParser(str).get._1
+        assert(simplify(figure) == Traslation(Group(List(
+          Rectangle((100, 100), (200, 200)),
+          Circle((100, 300), 150)
+        )), (100, 100)))
+      }
     }
 
     "Deberia simplificar rotaciones anidadas" in {
@@ -492,5 +545,60 @@ class ImageParserTest extends AnyFreeSpec {
       val figure = imageParser(str).get._1
       assert(simplify(figure) == Triangle((0, 100), (200, 300), (150, 500)))
     }
+  }
+
+  "Deberia simplificar una estructura compleja" in {
+    val str = noWhitespace(
+      """grupo(
+        |  color[255, 0, 0](
+        |    grupo(
+        |      escala[1, 1](
+        |        rectangulo[100 @ 100, 200 @ 200]
+        |      ),
+        |      traslacion[0, 0](
+        |        rotacion[0](
+        |          circulo[150 @ 150, 50]
+        |        )
+        |      )
+        |    )
+        |  ),
+        |  grupo(
+        |    color[255, 0, 0](
+        |      grupo(
+        |        escala[2, 2](triangulo[0 @ 100, 200 @ 300, 150 @ 500]),
+        |        escala[2, 2](triangulo[300 @ 400, 500 @ 600, 700 @ 800])
+        |      )
+        |    ),
+        |    color[255, 0, 0](
+        |      rotacion[30](circulo[200 @ 200, 75])
+        |    )
+        |  )
+        |)""".stripMargin)
+
+    val figure = imageParser(str).get._1
+    val expectedSimplifiedFigure = Color(
+      Group(List(
+        Group(List(
+          Rectangle((100, 100), (200, 200)),
+          Circle((150, 150), 50),
+        )),
+        Group(List(
+          Scale(
+            Group(List(
+              Triangle((0, 100), (200, 300), (150, 500)),
+              Triangle((300, 400), (500, 600), (700, 800))
+            )),
+            (2, 2)
+          ),
+          Rotation(
+            Circle((200, 200), 75),
+            30
+          )
+        ))
+      )),
+      (255, 0, 0)
+    )
+
+    assert(simplify(figure) == expectedSimplifiedFigure)
   }
 }
