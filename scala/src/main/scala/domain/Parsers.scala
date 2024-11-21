@@ -127,44 +127,7 @@ val integer = (char('-').opt <> number).map {
   case (Some(_), n) => -n
 }
 
-val double = (integer <> (char('.') <> number).opt).map {
+val double = (integer <> (char('.') ~> number).opt).map {
   case (i, None) => i.toDouble
-  case (i, Some((_, d))) => s"$i.$d".toDouble
+  case (i, Some(d)) => s"$i.$d".toDouble
 }
-
-//case class char(c: Char) extends Parser[Char] {
-//  def apply(s: String): Try[(Char, String)] = s.headOption.fold
-//    (Failure(new NoMoreCharactersError))
-//    (h => if (h == c) Success((h, s.tail)) else Failure(new UnexpectedCharacterError))
-//}
-//
-//case object digit extends Parser[Char] {
-//  def apply(s: String): Try[(Char, String)] = s.headOption.fold
-//    (Failure(new NoMoreCharactersError))
-//    (h => if (h.isDigit) Success((s.head, s.tail)) else Failure(new UnexpectedCharacterError))
-//}
-//
-//
-//case object number extends Parser[Int] {
-//  def apply(s: String): Try[(Int, String)] = s.headOption.fold
-//    (Failure(new NoMoreCharactersError))
-//    (h => if (h.isDigit) Success((s.takeWhile(_.isDigit).toInt, s.dropWhile(_.isDigit)))
-//    else Failure(new UnexpectedCharacterError))
-//}
-
-//case object integer extends Parser[Int] {
-//  def apply(s: String): Try[(Int, String)] = s.headOption.map {
-//    case '-' => number(s.tail).map((n, rest) => (-n, rest))
-//    case _ => number(s)
-//  }.getOrElse(Failure(new NoMoreCharactersError))
-//}
-
-//case object double extends Parser[Double] {
-//  def apply(s: String): Try[(Double, String)] = integer(s).flatMap((start, rest) =>
-//    if (rest.headOption.contains('.')) {
-//      number(rest.tail).map((end, rest2) => (s"$start.$end".toDouble, rest2))
-//    } else {
-//      Success((start.toDouble, rest))
-//    }
-//  )
-//}

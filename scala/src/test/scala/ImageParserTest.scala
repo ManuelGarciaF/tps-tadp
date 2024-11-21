@@ -163,7 +163,7 @@ class ImageParserTest extends AnyFreeSpec {
 
       assert(group(str).get == (
         Group(List(
-          Color(
+          Colour(
             Triangle((200, 50), (101, 335), (299, 335)),
             (60, 150, 200)
           ),
@@ -193,7 +193,7 @@ class ImageParserTest extends AnyFreeSpec {
           |)mastexto""".stripMargin)
 
       assert(color(str).get == (
-        Color(
+        Colour(
           Triangle((200, 50), (101, 335), (299, 335)),
           (60, 150, 200)
         ), "mastexto")
@@ -210,7 +210,7 @@ class ImageParserTest extends AnyFreeSpec {
           |)""".stripMargin)
 
       assert(color(str).get == (
-        Color(
+        Colour(
           Group(List(
             Triangle((200, 50), (101, 335), (299, 335)),
             Circle((200, 350), 100)
@@ -257,8 +257,8 @@ class ImageParserTest extends AnyFreeSpec {
           |)mastexto""".stripMargin)
 
       assert(color(str).get == (
-        Color(
-          Color(
+        Colour(
+          Colour(
             Triangle((200, 50), (101, 335), (299, 335)),
             (100, 200, 50)
           ),
@@ -413,7 +413,7 @@ class ImageParserTest extends AnyFreeSpec {
           |  )
           |)""".stripMargin)
       val figure = imageParser(str).get._1
-      assert(simplify(figure) == Color(Rectangle((100, 100), (200, 200)), (200, 200, 200)))
+      assert(simplify(figure) == Colour(Rectangle((100, 100), (200, 200)), (200, 200, 200)))
     }
 
     "Deberia simplificar transformaciones aplicadas a todos los hijos de un grupo" - {
@@ -428,7 +428,7 @@ class ImageParserTest extends AnyFreeSpec {
             |  )
             |)""".stripMargin)
         val figure = imageParser(str).get._1
-        assert(simplify(figure) == Color(Group(List(
+        assert(simplify(figure) == Colour(Group(List(
           Rectangle((100, 100), (200, 200)),
           Circle((100, 300), 150)
         )), (200, 200, 200)))
@@ -575,7 +575,7 @@ class ImageParserTest extends AnyFreeSpec {
           |)""".stripMargin)
 
       val figure = imageParser(str).get._1
-      val expectedSimplifiedFigure = Color(
+      val expectedSimplifiedFigure = Colour(
         Group(List(
           Group(List(
             Rectangle((100, 100), (200, 200)),
