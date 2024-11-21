@@ -106,34 +106,8 @@ def simplify(root: Figure): Figure = root match {
   case Scale(f, (1, 1)) => simplify(f)
   case Traslation(f, (0, 0)) => simplify(f)
 
-  // Simplificar grupos, extrayendo las transformaciones repetidas
-  case Group(f :: fs) =>
-    val fSimpl = simplify(f) // Hay que simplificar antes de rearmar el grupo
-    val fsSimpl = fs.map(simplify)
-
-    fSimpl match { // Si la primera figura es una transformación, intentar agruparla con las demás
-      case Color(f1, c) if fsSimpl.forall { case Color(_, `c`) => true; case _ => false } =>
-        Color(Group(
-          f1 :: fsSimpl.collect { case Color(f, _) => f }
-        ), c)
-
-      case Scale(f1, s) if fsSimpl.forall { case Scale(_, `s`) => true; case _ => false } =>
-        Scale(Group(
-          f1 :: fsSimpl.collect { case Scale(f, _) => f }
-        ), s)
-
-      case Rotation(f1, a) if fsSimpl.forall { case Rotation(_, `a`) => true; case _ => false } =>
-        Rotation(Group(
-          f1 :: fsSimpl.collect { case Rotation(f, _) => f }
-        ), a)
-
-      case Traslation(f1, d) if fsSimpl.forall { case Traslation(_, `d`) => true; case _ => false } =>
-        Traslation(Group(
-          f1 :: fsSimpl.collect { case Traslation(f, _) => f }
-        ), d)
-
-      case _ => Group(fSimpl :: fsSimpl)
-    }
+  // Simplificar grupos
+  case Group(fs) => extractTransformations(fs.map(simplify))
 
   // Simplificar figuras anidadas
   case Color(f, c) => Color(simplify(f), c)
@@ -141,6 +115,32 @@ def simplify(root: Figure): Figure = root match {
   case Rotation(f, a) => Rotation(simplify(f), a)
   case Traslation(f, d) => Traslation(simplify(f), d)
 
-  // Si no se cumple ninguna regla, devolver la figura sin modificar
-  case _ => root
+  // Las figuras simples no se pueden simplificar más
+  case Triangle(_, _, _) | Rectangle(_, _) | Circle(_, _) => root
+}
+
+// Si todos los elementos son transformaciones iguales, simplificar a una sola transformación
+def extractTransformations(fs: List[Figure]) = fs.head match {
+  // Si la primera figura es una transformación, ver si el resto son iguales
+  case Color(_, c) if fs.forall { case Color(_, `c`) => true; case _ => false } =>
+    Color(Group(
+      fs.collect { case Color(f, _) => f }
+    ), c)
+
+  case Scale(_, s) if fs.forall { case Scale(_, `s`) => true; case _ => false } =>
+    Scale(Group(
+      fs.collect { case Scale(f, _) => f }
+    ), s)
+
+  case Rotation(_, a) if fs.forall { case Rotation(_, `a`) => true; case _ => false } =>
+    Rotation(Group(
+      fs.collect { case Rotation(f, _) => f }
+    ), a)
+
+  case Traslation(_, d) if fs.forall { case Traslation(_, `d`) => true; case _ => false } =>
+    Traslation(Group(
+      fs.collect { case Traslation(f, _) => f }
+    ), d)
+
+  case _ => Group(fs)
 }

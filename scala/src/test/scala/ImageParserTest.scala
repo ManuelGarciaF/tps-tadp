@@ -545,60 +545,60 @@ class ImageParserTest extends AnyFreeSpec {
       val figure = imageParser(str).get._1
       assert(simplify(figure) == Triangle((0, 100), (200, 300), (150, 500)))
     }
-  }
 
-  "Deberia simplificar una estructura compleja" in {
-    val str = noWhitespace(
-      """grupo(
-        |  color[255, 0, 0](
-        |    grupo(
-        |      escala[1, 1](
-        |        rectangulo[100 @ 100, 200 @ 200]
-        |      ),
-        |      traslacion[0, 0](
-        |        rotacion[0](
-        |          circulo[150 @ 150, 50]
-        |        )
-        |      )
-        |    )
-        |  ),
-        |  grupo(
-        |    color[255, 0, 0](
-        |      grupo(
-        |        escala[2, 2](triangulo[0 @ 100, 200 @ 300, 150 @ 500]),
-        |        escala[2, 2](triangulo[300 @ 400, 500 @ 600, 700 @ 800])
-        |      )
-        |    ),
-        |    color[255, 0, 0](
-        |      rotacion[30](circulo[200 @ 200, 75])
-        |    )
-        |  )
-        |)""".stripMargin)
+    "Deberia simplificar una estructura compleja" in {
+      val str = noWhitespace(
+        """grupo(
+          |  color[255, 0, 0](
+          |    grupo(
+          |      escala[1, 1](
+          |        rectangulo[100 @ 100, 200 @ 200]
+          |      ),
+          |      traslacion[0, 0](
+          |        rotacion[0](
+          |          circulo[150 @ 150, 50]
+          |        )
+          |      )
+          |    )
+          |  ),
+          |  grupo(
+          |    color[255, 0, 0](
+          |      grupo(
+          |        escala[2, 2](triangulo[0 @ 100, 200 @ 300, 150 @ 500]),
+          |        escala[2, 2](triangulo[300 @ 400, 500 @ 600, 700 @ 800])
+          |      )
+          |    ),
+          |    color[255, 0, 0](
+          |      rotacion[30](circulo[200 @ 200, 75])
+          |    )
+          |  )
+          |)""".stripMargin)
 
-    val figure = imageParser(str).get._1
-    val expectedSimplifiedFigure = Color(
-      Group(List(
+      val figure = imageParser(str).get._1
+      val expectedSimplifiedFigure = Color(
         Group(List(
-          Rectangle((100, 100), (200, 200)),
-          Circle((150, 150), 50),
+          Group(List(
+            Rectangle((100, 100), (200, 200)),
+            Circle((150, 150), 50),
+          )),
+          Group(List(
+            Scale(
+              Group(List(
+                Triangle((0, 100), (200, 300), (150, 500)),
+                Triangle((300, 400), (500, 600), (700, 800))
+              )),
+              (2, 2)
+            ),
+            Rotation(
+              Circle((200, 200), 75),
+              30
+            )
+          ))
         )),
-        Group(List(
-          Scale(
-            Group(List(
-              Triangle((0, 100), (200, 300), (150, 500)),
-              Triangle((300, 400), (500, 600), (700, 800))
-            )),
-            (2, 2)
-          ),
-          Rotation(
-            Circle((200, 200), 75),
-            30
-          )
-        ))
-      )),
-      (255, 0, 0)
-    )
+        (255, 0, 0)
+      )
 
-    assert(simplify(figure) == expectedSimplifiedFigure)
+      assert(simplify(figure) == expectedSimplifiedFigure)
+    }
   }
 }
